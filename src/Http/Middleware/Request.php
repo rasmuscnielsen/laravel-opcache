@@ -21,7 +21,7 @@ class Request
      */
     public function handle($request, Closure $next)
     {
-        if (! in_array($this->getRequestIp($request), [$_SERVER['SERVER_ADDR'], '127.0.0.1', '::1'])) {
+        if (! in_array($this->getRequestIp($request), $this->getWhiteList())) {
             throw new AuthorizationException('This action is unauthorized.');
         }
 
@@ -47,5 +47,21 @@ class Request
             // remote header
             return $request->server('REMOTE_ADDR');
         }
+    }
+
+    /**
+     * @return array
+     */
+    protected function getWhiteList()
+    {
+        $additionalIps = config('opcache.ip_whitelist');
+
+        if(!is_array($additionalIps)) {
+            $additionalIps = collect(explode(',', $additionalIps))->map(function($ip) {
+                return trim($ip);
+            })->toArray();
+        }
+
+        return array_merge([$_SERVER['SERVER_ADDR'], '127.0.0.1', '::1'], $additionalIps);
     }
 }
